@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'package:calm_urge/views/calm_urge/calm_urge_view.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../services/hive_service.dart';
-import '../../widgets/bottom_nav.dart';
 import '../../core/theme/app_theme.dart';
+import 'home_widgets.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class HomeView extends StatefulWidget {
   const HomeView({super.key});
@@ -41,11 +43,14 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Home'),
+        title: Text('Home', style: TextStyle(color: AppTheme.surfaceColor)),
         actions: [
           IconButton(
-            icon: const Icon(Icons.lock_open, color: AppTheme.textPrimary),
-            onPressed: () => Navigator.pushNamed(context, '/more'),
+            icon: const Icon(
+              Icons.refresh_rounded,
+              color: AppTheme.surfaceColor,
+            ),
+            onPressed: () => _resetStreak(),
           ),
         ],
       ),
@@ -71,7 +76,6 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
           );
         },
       ),
-      bottomNavigationBar: const BottomNav(currentIndex: 0),
     );
   }
 
@@ -120,23 +124,25 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
                   return Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      Expanded(child: _buildTimeUnit(elapsed.inDays, 'Days')),
                       Expanded(
-                        child: _buildTimeUnit(
-                          elapsed.inHours.remainder(24),
-                          'Hours',
+                        child: TimeUnit(value: elapsed.inDays, label: 'Days'),
+                      ),
+                      Expanded(
+                        child: TimeUnit(
+                          value: elapsed.inHours.remainder(24),
+                          label: 'Hours',
                         ),
                       ),
                       Expanded(
-                        child: _buildTimeUnit(
-                          elapsed.inMinutes.remainder(60),
-                          'Mins',
+                        child: TimeUnit(
+                          value: elapsed.inMinutes.remainder(60),
+                          label: 'Mins',
                         ),
                       ),
                       Expanded(
-                        child: _buildTimeUnit(
-                          elapsed.inSeconds.remainder(60),
-                          'Secs',
+                        child: TimeUnit(
+                          value: elapsed.inSeconds.remainder(60),
+                          label: 'Secs',
                         ),
                       ),
                     ],
@@ -164,36 +170,6 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildTimeUnit(int value, String label) {
-    return Column(
-      children: [
-        AnimatedSwitcher(
-          duration: const Duration(milliseconds: 300),
-          transitionBuilder: (Widget child, Animation<double> animation) {
-            return ScaleTransition(scale: animation, child: child);
-          },
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              value.toString().padLeft(2, '0'),
-              key: ValueKey(value),
-              style: const TextStyle(
-                fontSize: 36,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: const TextStyle(fontSize: 14, color: Colors.white70),
-        ),
-      ],
     );
   }
 
@@ -261,15 +237,17 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               Expanded(
-                child: _DailyCard(
+                child: DailyCard(
                   icon: Icons.track_changes,
                   label: 'Track',
                   color: AppTheme.primaryColor,
-                  onTap: () => _showDailyTrack(context),
+                  onTap: () {
+                    _showDailyTrack(context);
+                  },
                 ),
               ),
               Expanded(
-                child: _DailyCard(
+                child: DailyCard(
                   icon: Icons.assignment_turned_in,
                   label: 'Pledge',
                   color: AppTheme.secondaryColor,
@@ -277,7 +255,7 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
                 ),
               ),
               Expanded(
-                child: _DailyCard(
+                child: DailyCard(
                   icon: Icons.message,
                   label: 'Message',
                   color: AppTheme.accentColor,
@@ -319,9 +297,9 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
                       e.createdAt.day == date.day,
                 );
                 return Container(
-                  width: 50, // fixed width for each day chip
+                  width: 50,
                   margin: const EdgeInsets.symmetric(horizontal: 4),
-                  child: _DayChip(
+                  child: DayChip(
                     day: DateFormat.E().format(date)[0],
                     date: date.day.toString(),
                     hasEntry: hasEntry,
@@ -363,7 +341,9 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
               style: TextStyle(color: Colors.white, fontSize: 12),
             ),
           ),
-          onTap: () {},
+          onTap: () {
+            _launchCommunityUrl();
+          },
         ),
       ),
     );
@@ -466,88 +446,79 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
   }
 
   void _showDailyTrack(BuildContext context) {
-    Navigator.pushNamed(context, '/journal');
-  }
-}
+    final hive = Provider.of<HiveService>(context, listen: false);
+    final entries = hive.journalEntries
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt)); // newest first
 
-class _DailyCard extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _DailyCard({
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              shape: BoxShape.circle,
-              border: Border.all(color: color, width: 2),
-            ),
-            child: Icon(icon, color: color, size: 30),
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+        child: Container(
+          width: double.maxFinite,
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.7,
           ),
-          const SizedBox(height: 8),
-          Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
-        ],
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Journal Entries',
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: entries.isEmpty
+                    ? const Center(child: Text('No entries yet.'))
+                    : ListView.builder(
+                        itemCount: entries.length,
+                        itemBuilder: (context, index) {
+                          final entry = entries[index];
+                          return Card(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            child: ListTile(
+                              title: Text(entry.title),
+                              subtitle: Text(entry.content),
+                              trailing: Text(
+                                DateFormat.yMMMd().format(entry.createdAt),
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Close'),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
-}
 
-class _DayChip extends StatelessWidget {
-  final String day;
-  final String date;
-  final bool hasEntry;
-  const _DayChip({
-    required this.day,
-    required this.date,
-    required this.hasEntry,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          day,
-          style: TextStyle(
-            fontSize: 12,
-            color: hasEntry ? AppTheme.primaryColor : AppTheme.textSecondary,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: hasEntry ? AppTheme.primaryColor : Colors.grey[200],
-          ),
-          child: Center(
-            child: Text(
-              date,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: hasEntry ? FontWeight.bold : FontWeight.normal,
-                color: hasEntry ? Colors.white : AppTheme.textPrimary,
-              ),
-            ),
-          ),
-        ),
-      ],
+  Future<void> _launchCommunityUrl() async {
+    final Uri url = Uri.parse(
+      'https://www.instagram.com/calmurge?igsh=M3kycXF2OG1yZjUw',
     );
+    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+      // Show a snackbar or dialog if the link fails
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not open the link. Please try again later.'),
+          ),
+        );
+      }
+    }
+  }
+
+  void _resetStreak() async {
+    final hive = Provider.of<HiveService>(context, listen: false);
+    await hive.resetStreak();
   }
 }

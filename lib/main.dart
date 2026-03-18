@@ -1,6 +1,6 @@
+import 'package:calm_urge/widgets/main_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'services/hive_service.dart';
 
@@ -22,8 +22,7 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         title: 'Harm Free App',
         theme: AppTheme.lightTheme,
-        initialRoute: AppRouter.home,
-        onGenerateRoute: AppRouter.onGenerateRoute,
+        home: const MainScreen(),
       ),
     );
   }

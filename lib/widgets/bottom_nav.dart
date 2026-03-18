@@ -3,57 +3,60 @@ import '../core/theme/app_theme.dart';
 
 class BottomNav extends StatelessWidget {
   final int currentIndex;
-  const BottomNav({super.key, required this.currentIndex});
+  final void Function(int) onTap;
+
+  const BottomNav({super.key, required this.currentIndex, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return BottomNavigationBar(
-      currentIndex: currentIndex,
-      type: BottomNavigationBarType.fixed,
-      selectedItemColor: AppTheme.primaryColor,
-      unselectedItemColor: AppTheme.textSecondary,
-      showUnselectedLabels: true,
-      onTap: (index) {
-        if (index == currentIndex) return;
-        switch (index) {
-          case 0:
-            Navigator.pushReplacementNamed(context, '/');
-            break;
-          case 1:
-            Navigator.pushReplacementNamed(context, '/journal');
-            break;
-          case 2:
-            Navigator.pushReplacementNamed(context, '/calm-urge');
-            break;
-          case 3:
-            Navigator.pushReplacementNamed(context, '/analytics');
-            break;
-          case 4:
-            Navigator.pushReplacementNamed(context, '/more');
-            break;
-        }
-      },
-      items: const [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.home_outlined),
-          activeIcon: Icon(Icons.home),
+    return NavigationBar(
+      selectedIndex: currentIndex,
+      onDestinationSelected: onTap,
+      destinations: [
+        NavigationDestination(
+          icon: Icon(Icons.home_max),
+          selectedIcon: Icon(Icons.home_max_sharp),
           label: 'Home',
         ),
-        BottomNavigationBarItem(
+        NavigationDestination(
           icon: Icon(Icons.book_outlined),
-          activeIcon: Icon(Icons.book),
+          selectedIcon: Icon(Icons.book),
           label: 'Journal',
         ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.self_improvement),
+        NavigationDestination(
+          icon: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryColor,
+              shape: BoxShape.circle,
+
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.primaryColor.withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: const Icon(
+              Icons.self_improvement,
+
+              color: Colors.white,
+              size: 28,
+            ),
+          ),
           label: 'Calm Urge',
         ),
-        BottomNavigationBarItem(
+        NavigationDestination(
           icon: Icon(Icons.analytics_outlined),
-          activeIcon: Icon(Icons.analytics),
+          selectedIcon: Icon(Icons.auto_graph_rounded),
           label: 'Analytics',
         ),
-        BottomNavigationBarItem(icon: Icon(Icons.menu), label: 'More'),
+        NavigationDestination(
+          icon: Icon(Icons.more_horiz),
+          selectedIcon: Icon(Icons.more_horiz),
+          label: 'More',
+        ),
       ],
     );
   }

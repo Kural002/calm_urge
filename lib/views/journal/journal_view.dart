@@ -4,7 +4,6 @@ import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 import '../../models/journal_entry.dart';
 import '../../services/hive_service.dart';
-import '../../widgets/bottom_nav.dart';
 import '../../core/theme/app_theme.dart';
 
 class JournalView extends StatefulWidget {
@@ -41,16 +40,31 @@ class _JournalViewState extends State<JournalView>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(DateFormat('MMMM yyyy').format(_selectedMonth)),
+        backgroundColor: AppTheme.backgroundColor,
+        title: Text(
+          DateFormat('MMMM yyyy').format(_selectedMonth),
+          style: TextStyle(color: AppTheme.textPrimary),
+        ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.calendar_today),
-            onPressed: _showMonthPicker,
+          Container(
+            margin: const EdgeInsets.only(right: 2),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              color: AppTheme.primaryColor.withOpacity(0.5),
+              shape: BoxShape.rectangle,
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.calendar_today_outlined),
+              onPressed: _showMonthPicker,
+              tooltip: 'Change month',
+              color: AppTheme.surfaceColor,
+            ),
           ),
         ],
       ),
       body: Consumer<HiveService>(
         builder: (context, hive, child) {
+          // Filter journal entries by selected month
           final entries = hive.journalEntries
               .where(
                 (e) =>
@@ -75,11 +89,11 @@ class _JournalViewState extends State<JournalView>
           backgroundColor: AppTheme.primaryColor,
         ),
       ),
-      bottomNavigationBar: const BottomNav(currentIndex: 1),
     );
   }
 
   Widget _buildCalendar(List<JournalEntry> entries) {
+    /// Calendar grid calculation
     final daysInMonth = DateTime(
       _selectedMonth.year,
       _selectedMonth.month + 1,
@@ -197,34 +211,56 @@ class _JournalViewState extends State<JournalView>
         final entry = entries[index];
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
-          child: ListTile(
-            contentPadding: const EdgeInsets.all(16),
-            title: Text(
-              entry.title,
-              style: const TextStyle(fontWeight: FontWeight.bold),
+          clipBehavior: Clip.antiAlias,
+          child: Dismissible(
+            key: Key(entry.id),
+            direction: DismissDirection.endToStart,
+            background: Container(
+              color: Colors.red,
+              alignment: Alignment.centerRight,
+              padding: const EdgeInsets.only(right: 20),
+              child: const Icon(Icons.delete, color: Colors.white),
             ),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 4),
-                Text(
-                  entry.content,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+            onDismissed: (direction) {
+              _deleteEntry(entry.id);
+            },
+            child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              title: Padding(
+                padding: const EdgeInsets.only(bottom: 4.0),
+                child: Text(
+                  entry.title,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  DateFormat.yMMMd().add_jm().format(entry.createdAt),
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppTheme.textSecondary,
+              ),
+              subtitle: Text(
+                entry.content,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              trailing: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    DateFormat.MMMd().format(entry.createdAt),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppTheme.textSecondary,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                ),
-              ],
-            ),
-            trailing: IconButton(
-              icon: const Icon(Icons.delete, color: Colors.red),
-              onPressed: () => _deleteEntry(entry.id),
+                  const SizedBox(height: 4),
+                  Text(
+                    DateFormat.jm().format(entry.createdAt),
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppTheme.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         );
@@ -347,19 +383,34 @@ class _JournalViewState extends State<JournalView>
               ),
               const SizedBox(height: 12),
               ...dayEntries.map(
-                (entry) => ListTile(
-                  title: Text(entry.title),
-                  subtitle: Text(entry.content),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () async {
-                      final hive = Provider.of<HiveService>(
-                        context,
-                        listen: false,
-                      );
-                      await hive.deleteJournalEntry(entry.id);
-                      if (context.mounted) Navigator.pop(context);
-                    },
+                (entry) => Dismissible(
+                  key: Key(entry.id),
+                  direction: DismissDirection.endToStart,
+                  background: Container(
+                    color: Colors.red,
+                    alignment: Alignment.centerRight,
+                    padding: const EdgeInsets.only(right: 20),
+                    child: const Icon(Icons.delete, color: Colors.white),
+                  ),
+                  onDismissed: (direction) async {
+                    final hive = Provider.of<HiveService>(
+                      context,
+                      listen: false,
+                    );
+                    await hive.deleteJournalEntry(entry.id);
+                    if (context.mounted) Navigator.pop(context);
+                  },
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    title: Text(entry.title),
+                    subtitle: Text(entry.content, maxLines: 2, overflow: TextOverflow.ellipsis),
+                    trailing: Text(
+                      DateFormat.jm().format(entry.createdAt),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.textSecondary,
+                      ),
+                    ),
                   ),
                 ),
               ),
