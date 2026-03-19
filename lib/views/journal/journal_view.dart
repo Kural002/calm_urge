@@ -104,8 +104,8 @@ class _JournalViewState extends State<JournalView>
         7; // 0 = Sunday
 
     return Container(
-      padding: const EdgeInsets.all(16),
-      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12), // Reduced padding
+      margin: const EdgeInsets.symmetric(horizontal: 32, vertical: 12), // Added more horizontal margin to shrink calendar
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -142,7 +142,7 @@ class _JournalViewState extends State<JournalView>
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 7,
-              childAspectRatio: 1,
+              childAspectRatio: 1.2, // Slightly wider than tall to reduce vertical height
             ),
             itemCount: 42,
             itemBuilder: (context, index) {

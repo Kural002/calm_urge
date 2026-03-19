@@ -7,6 +7,7 @@ import '../../services/hive_service.dart';
 import '../../core/theme/app_theme.dart';
 import 'home_widgets.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../views/track/track_view.dart';
 
 class HomeView extends StatefulWidget {
   const HomeView({super.key});
@@ -242,7 +243,10 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
                   label: 'Track',
                   color: AppTheme.primaryColor,
                   onTap: () {
-                    _showDailyTrack(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const TrackView()),
+                    );
                   },
                 ),
               ),
@@ -445,75 +449,17 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
     );
   }
 
-  void _showDailyTrack(BuildContext context) {
-    final hive = Provider.of<HiveService>(context, listen: false);
-    final entries = hive.journalEntries
-      ..sort((a, b) => b.createdAt.compareTo(a.createdAt)); // newest first
-
-    showDialog(
-      context: context,
-      builder: (_) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-        child: Container(
-          width: double.maxFinite,
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.7,
-          ),
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'Journal Entries',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-              Expanded(
-                child: entries.isEmpty
-                    ? const Center(child: Text('No entries yet.'))
-                    : ListView.builder(
-                        itemCount: entries.length,
-                        itemBuilder: (context, index) {
-                          final entry = entries[index];
-                          return Card(
-                            margin: const EdgeInsets.only(bottom: 8),
-                            child: ListTile(
-                              title: Text(entry.title),
-                              subtitle: Text(entry.content),
-                              trailing: Text(
-                                DateFormat.yMMMd().format(entry.createdAt),
-                                style: const TextStyle(fontSize: 12),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Close'),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   Future<void> _launchCommunityUrl() async {
     final Uri url = Uri.parse(
       'https://www.instagram.com/calmurge?igsh=M3kycXF2OG1yZjUw',
     );
     if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-      // Show a snackbar or dialog if the link fails
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Could not open the link. Please try again later.'),
-          ),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not open the link. Please try again later.'),
+        ),
+      );
     }
   }
 
