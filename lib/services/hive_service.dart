@@ -24,6 +24,12 @@ class HiveService extends ChangeNotifier {
     Hive.registerAdapter(JournalEntryAdapter());
     journalBox = await Hive.openBox<JournalEntry>(journalBoxName);
     settingsBox = await Hive.openBox(settingsBoxName);
+
+    // Automatically start the timer if it hasn't been started yet
+    if (settingsBox.get(streakStartKey) == null) {
+      await settingsBox.put(streakStartKey, DateTime.now().toIso8601String());
+    }
+
     _isInitialized = true;
     notifyListeners();
   }

@@ -47,7 +47,8 @@ class _JournalViewState extends State<JournalView>
         ),
         actions: [
           Container(
-            margin: const EdgeInsets.only(right: 2),
+
+            margin: const EdgeInsets.only(right: 5),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
               color: AppTheme.primaryColor.withOpacity(0.5),

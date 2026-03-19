@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:calm_urge/views/calm_urge/calm_urge_view.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -287,7 +286,7 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
           ),
           const SizedBox(height: 16),
           // Fix: Use horizontal ListView for scrollable week strip
-          Container(
+          SizedBox(
             height: 80,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
@@ -433,8 +432,9 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
               else
                 ElevatedButton(
                   onPressed: () async {
+                    final nav = Navigator.of(context);
                     await hive.markPledgedToday();
-                    if (context.mounted) Navigator.pop(context);
+                    nav.pop();
                   },
                   child: const Text('I PLEDGE', style: TextStyle(fontSize: 16)),
                 ),
@@ -463,8 +463,96 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
     }
   }
 
-  void _resetStreak() async {
-    final hive = Provider.of<HiveService>(context, listen: false);
-    await hive.resetStreak();
+  void _resetStreak() {
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Reset Streak',
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () async {
+                  final hive = Provider.of<HiveService>(context, listen: false);
+                  await hive.resetStreak();
+                  if (context.mounted) Navigator.pop(context);
+                },
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(50),
+                  backgroundColor: AppTheme.calmUrgeRed,
+                ),
+                child: const Text('Reset to Right Now'),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton(
+                onPressed: () async {
+                  Navigator.pop(context);
+                  _pickCustomDateTime();
+                },
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(50),
+                  side: const BorderSide(color: AppTheme.primaryColor),
+                ),
+                child: const Text('Set Custom Date & Time'),
+              ),
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel', style: TextStyle(color: AppTheme.textSecondary)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickCustomDateTime() async {
+    final DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+    );
+
+    if (pickedDate != null && mounted) {
+      final TimeOfDay? pickedTime = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.now(),
+      );
+
+      if (pickedTime != null && mounted) {
+        final DateTime finalDateTime = DateTime(
+          pickedDate.year,
+          pickedDate.month,
+          pickedDate.day,
+          pickedTime.hour,
+          pickedTime.minute,
+        );
+
+        // Ensure they don't pick a future time
+        if (finalDateTime.isAfter(DateTime.now())) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Cannot select a future date/time.')),
+          );
+          return;
+        }
+
+        final hive = Provider.of<HiveService>(context, listen: false);
+        final scaffoldMessenger = ScaffoldMessenger.of(context);
+        await hive.setStreakStart(finalDateTime);
+        
+        scaffoldMessenger.showSnackBar(
+          const SnackBar(content: Text('Streak time updated!')),
+        );
+      }
+    }
   }
 }
